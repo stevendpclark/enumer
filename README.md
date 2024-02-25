@@ -6,7 +6,7 @@ It started as a fork of [Rob Pike’s Stringer tool](https://godoc.org/golang.or
 Enumer can be installed as any other go command:
 
 ```
-go get github.com/alvaroloes/enumer
+go install github.com/loggerhead/enumer
 ```
 After that, the `enumer` executable will be in "$GOPATH/bin" folder and you can use it with `go generate`
 
@@ -14,7 +14,7 @@ After that, the `enumer` executable will be in "$GOPATH/bin" folder and you can 
 ## Generated functions and methods
 When Enumer is applied to a type, it will generate:
 
-* The following basic methods/functions: 
+* The following basic methods/functions:
 
   * Method `String()`: returns the string representation of the enum value. This makes the enum conform
 the `Stringer` interface, so whenever you print an enum value, you'll get the string name instead of a number.
@@ -27,7 +27,7 @@ be almost meaningless or hard to trace or use by a human.
 * When the flag `json` is provided, two additional methods will be generated, `MarshalJSON()` and `UnmarshalJSON()`. These make
 the enum conform to the `json.Marshaler` and `json.Unmarshaler` interfaces. Very useful to use it in JSON APIs.
 * When the flag `text` is provided, two additional methods will be generated, `MarshalText()` and `UnmarshalText()`. These make
-the enum conform to the `encoding.TextMarshaler` and `encoding.TextUnmarshaler` interfaces. 
+the enum conform to the `encoding.TextMarshaler` and `encoding.TextUnmarshaler` interfaces.
 **Note:** If you use your enum values as keys in a map and you encode the map as _JSON_, you need this flag set to true to properly
 convert the map keys to json (strings). If not, the numeric values will be used instead
 * When the flag `yaml` is provided, two additional methods will be generated, `MarshalYAML()` and `UnmarshalYAML()`. These make
@@ -49,19 +49,19 @@ const (
 ```
 executing `enumer -type=Pill -json` will generate a new file with four basic methods and two extra for JSON:
 ```go
-func (i Pill) String() string { 
+func (i Pill) String() string {
 	//...
 }
 
-func PillString(s string) (Pill, error) { 
+func PillString(s string) (Pill, error) {
 	//...
 }
 
-func PillValues() []Pill { 
+func PillValues() []Pill {
 	//...
 }
 
-func (i Pill) IsAPill() bool { 
+func (i Pill) IsAPill() bool {
 	//...
 }
 
