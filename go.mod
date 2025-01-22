@@ -1,4 +1,4 @@
-module github.com/loggerhead/enumer
+module github.com/stevendpclark/enumer
 
 go 1.22
 
