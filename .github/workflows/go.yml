@@ -37,3 +37,16 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+  
+  results:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: Final Results
+    needs: [build]
+    steps:
+      - run: |
+          result="${{ needs.build.result }}"
+          if [[ $result == "success" ]]; then
+            exit 0
+          fi
+          exit 1
