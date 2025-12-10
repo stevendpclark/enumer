@@ -6,7 +6,7 @@ It started as a fork of [Rob Pike’s Stringer tool](https://godoc.org/golang.or
 Enumer can be installed as any other go command:
 
 ```
-go install github.com/loggerhead/enumer
+go install github.com/stevendpclark/enumer
 ```
 After that, the `enumer` executable will be in "$GOPATH/bin" folder and you can use it with `go generate`
 
@@ -34,6 +34,9 @@ convert the map keys to json (strings). If not, the numeric values will be used 
 the enum conform to the `gopkg.in/yaml.v2.Marshaler` and `gopkg.in/yaml.v2.Unmarshaler` interfaces.
 * When the flag `sql` is provided, the methods for implementing the Scanner and Valuer interfaces will be also generated.
 Useful when storing the enum in a database.
+* When the flag `extra-values` is provided, two additional methods will be generated, `<Type>ValuesAsStr()` which returns
+a slice of strings that represent all the enumerations and `<Type>sStrValuesAsAny` which returns the same slice as `<Type>ValuesAsStr()` 
+but is returned as a slice of any values.
 
 For example, if we have an enum type called `Pill`,
 ```go
@@ -134,8 +137,8 @@ name := MyTypeValue.String() // name => "my_type_value"
 The usage of Enumer is the same as Stringer, so you can refer to the [Stringer docs](https://godoc.org/golang.org/x/tools/cmd/stringer)
 for more information.
 
-There are four boolean flags: `json`, `text`, `yaml` and `sql`. You can use any combination of them (i.e. `enumer -type=Pill -json -text`),
-
+There are five boolean flags: `extra-values`, `json`, `text`, `yaml` and `sql`. You can use any combination of them (i.e. `enumer -type=Pill -json -text`),
+Note that `extra-values` boolean flag that is new to this package, which adds extra functions that return the enumeration as different value types.
 
 For enum string representation transformation the `transform` and `trimprefix` flags
 were added (i.e. `enumer -type=MyType -json -transform=snake`).
