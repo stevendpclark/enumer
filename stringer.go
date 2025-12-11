@@ -2,12 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build go1.5
 // +build go1.5
 
-//Enumer is a tool to generate Go code that adds useful methods to Go enums (constants with a specific type).
-//It started as a fork of Rob Pike’s Stringer tool
+// Enumer is a tool to generate Go code that adds useful methods to Go enums (constants with a specific type).
+// It started as a fork of Rob Pike’s Stringer tool
 //
-//Please visit http://github.com/loggerhead/enumer for a comprehensive documentation
+// Please visit http://github.com/loggerhead/enumer for a comprehensive documentation
 package main
 
 import (
@@ -20,13 +21,14 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
-	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 
 	"github.com/pascaldekloe/name"
 )
@@ -48,8 +50,9 @@ var (
 	json            = flag.Bool("json", false, "if true, json marshaling methods will be generated. Default: false")
 	yaml            = flag.Bool("yaml", false, "if true, yaml marshaling methods will be generated. Default: false")
 	text            = flag.Bool("text", false, "if true, text marshaling methods will be generated. Default: false")
+	extraValues     = flag.Bool("extra-values", false, "if true, ValuesAsStr and ValuesAsAny methods will be generated. Default: false")
 	output          = flag.String("output", "", "output file name; default srcdir/<type>_enumer.go")
-	transformMethod = flag.String("transform", "noop", "enum item name transformation method. Default: noop")
+	transformMethod = flag.String("transform", "noop", "enum item name transformation method. values allowed are snake,kebab,lowercamel. Default: noop")
 	trimPrefix      = flag.String("trimprefix", "", "transform each item name by removing a prefix. Default: \"\"")
 	lineComment     = flag.Bool("linecomment", false, "use line comment text as printed text when present")
 )
@@ -66,7 +69,7 @@ func Usage() {
 	fmt.Fprintf(os.Stderr, "\tenumer [flags] -type T [directory]\n")
 	fmt.Fprintf(os.Stderr, "\tenumer [flags] -type T files... # Must be a single package\n")
 	fmt.Fprintf(os.Stderr, "For more information, see:\n")
-	fmt.Fprintf(os.Stderr, "\thttps://github.com/loggerhead/enumer\n")
+	fmt.Fprintf(os.Stderr, "\thttps://github.com/stevendpclark/enumer\n")
 	fmt.Fprintf(os.Stderr, "Flags:\n")
 	flag.PrintDefaults()
 }
@@ -121,7 +124,7 @@ func main() {
 
 	// Run generate for each type.
 	for _, typeName := range types {
-		g.generate(typeName, *json, *yaml, *sql, *text, *transformMethod, *trimPrefix, *lineComment)
+		g.generate(typeName, *json, *yaml, *sql, *text, *extraValues, *transformMethod, *trimPrefix, *lineComment)
 	}
 
 	// Format the output.
@@ -346,7 +349,7 @@ func (g *Generator) replaceValuesWithLineComment(values []Value) {
 }
 
 // generate produces the String method for the named type.
-func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeSQL, includeText bool, transformMethod string, trimPrefix string, lineComment bool) {
+func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeSQL, includeText, includeExtraValues bool, transformMethod, trimPrefix string, lineComment bool) {
 	values := make([]Value, 0, 100)
 	for _, file := range g.pkg.files {
 		// Set the state for this run of the walker.
@@ -394,6 +397,9 @@ func (g *Generator) generate(typeName string, includeJSON, includeYAML, includeS
 	}
 
 	g.buildBasicExtras(runs, typeName, runsThreshold)
+	if includeExtraValues {
+		g.buildExtraValueMethods(typeName)
+	}
 	if includeJSON {
 		g.buildJSONMethods(runs, typeName, runsThreshold)
 	}
@@ -663,6 +669,7 @@ func (g *Generator) buildOneRun(runs [][]Value, typeName string) {
 }
 
 // Arguments to format are:
+//
 //	[1]: type name
 //	[2]: size of index element (8 for uint8 etc.)
 //	[3]: less than zero check (for signed types)
@@ -731,6 +738,11 @@ func (g *Generator) buildMap(runs [][]Value, typeName string) {
 	}
 	g.Printf("}\n\n")
 	g.Printf(stringMap, typeName)
+}
+
+func (g *Generator) buildExtraValueMethods(typeName string) {
+	g.Printf(valuesAsStringMethod, typeName)
+	g.Printf(valuesAsAnyMethod, typeName)
 }
 
 // Argument to format is the type name.
