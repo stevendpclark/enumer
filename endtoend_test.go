@@ -114,6 +114,55 @@ func run(name string, arg ...string) error {
 	return runInDir(".", name, arg...)
 }
 
+// TestCommentWithNewline verifies that a -comment value containing a newline
+// produces one "// " prefixed line per segment in the generated output.
+func TestCommentWithNewline(t *testing.T) {
+	dir := t.TempDir()
+
+	enumerBin := filepath.Join(dir, "enumer.exe")
+	if err := run("go", "build", "-o", enumerBin); err != nil {
+		t.Fatalf("building enumer: %s", err)
+	}
+
+	inputSrc := `package color
+
+type Color int
+
+const (
+	Red Color = iota
+	Green
+	Blue
+)
+`
+	inputFile := filepath.Join(dir, "color.go")
+	if err := os.WriteFile(inputFile, []byte(inputSrc), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	outputFile := filepath.Join(dir, "color_enumer.go")
+	if err := run(enumerBin, "-type", "Color", "-output", outputFile, "-comment", "line one\nline two", inputFile); err != nil {
+		t.Fatalf("running enumer: %s", err)
+	}
+
+	data, err := os.ReadFile(outputFile)
+	if err != nil {
+		t.Fatalf("reading output: %s", err)
+	}
+
+	got := string(data)
+	if !strings.Contains(got, "// line one\n") {
+		t.Errorf("expected '// line one' in output, got:\n%s", got)
+	}
+	if !strings.Contains(got, "// line two\n") {
+		t.Errorf("expected '// line two' in output, got:\n%s", got)
+	}
+
+	// Verify the generated file is valid Go (must include the source file that defines Color).
+	if err := run("go", "build", inputFile, outputFile); err != nil {
+		t.Errorf("generated file does not compile: %s\ngot:\n%s", err, got)
+	}
+}
+
 // runInDir runs a single command in directory dir and returns an error if
 // it does not succeed.
 func runInDir(dir, name string, arg ...string) error {
