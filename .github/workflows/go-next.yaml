@@ -1,0 +1,75 @@
+
+name: Go Next Release
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go-next:
+    name: Test latest Go release 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Determine newest Go version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl --fail --silent --show-error \
+            --retry 3 \
+            'https://go.dev/dl/?mode=json&include=all' \
+            -o /tmp/go-releases.json
+
+          version=$(jq -r '
+            [
+              .[].version
+              | select(
+                  test("^go[0-9]+\\.[0-9]+(\\.[0-9]+|rc[0-9]+|beta[0-9]+)$")
+                )
+            ][0] // empty
+          ' /tmp/go-releases.json)
+
+          if [[ -z "$version" ]]; then
+            echo "Unable to determine Go version" >&2
+            exit 1
+          fi
+
+          echo "Selected Go release: $version"
+
+          version="${version#go}"
+
+          if [[ "$version" =~ ^([0-9]+\.[0-9]+)rc([0-9]+)$ ]]; then
+            version="${BASH_REMATCH[1]}.0-rc.${BASH_REMATCH[2]}"
+          elif [[ "$version" =~ ^([0-9]+\.[0-9]+)beta([0-9]+)$ ]]; then
+            version="${BASH_REMATCH[1]}.0-beta.${BASH_REMATCH[2]}"
+          fi
+
+          echo "go-version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.version.outputs.go-version }}
+
+      - name: Display Go version
+        run: go version
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test 
+        run: go test -v ./...
+
+      - name: Test with race
+        run: go test -v -race ./...
+
